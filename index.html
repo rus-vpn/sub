@@ -14,40 +14,24 @@
     </style>
 </head>
 <body>
-
 <div class="card">
     <h1>Настройка Android</h1>
-    <p>Нажми на кнопку ниже для автоматического импорта настроек в приложение sing-box.</p>
+    <p>Нажми на кнопку ниже, чтобы автоматически импортировать настройки в приложение sing-box.</p>
     <a id="vpnBtn" class="btn" href="#">Настроить в 1 клик</a>
 </div>
-
 <script>
     const urlParams = new URLSearchParams(window.location.search);
-    let rawInput = urlParams.get('token') || urlParams.get('sub');
-
-    if (rawInput) {
-        let token = rawInput;
-        
-        // Если вставили полную ссылку (с http/https или слэшами), забираем только сам токен в конце
-        if (token.includes('/')) {
-            token = token.split('/').pop().trim();
-        }
-
-        // Жестко собираем правильный URL подписки, подставляя вырезанный токен к твоему DuckDNS
+    const token = urlParams.get('token');
+    if (token) {
+        // МЫ ЗАМЕНИЛИ https НА http ЗДЕСЬ, чтобы обойти ошибку сертификата
         const subUrl = `http://rus-vpn.duckdns.org:33445/secure-connect-vless/${token}`;
         const template = 'https://raw.githubusercontent.com/sing-box/template/main/clientside-split-tunnel-ru.json';
-        
-        // Формируем прямой диплинк для sing-box
-        const singBoxLink = `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}&template=${encodeURIComponent(template)}#Личный%20VPN`;
-        
-        document.getElementById('vpnBtn').href = singBoxLink;
+        const rawProfileUrl = `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}&template=${encodeURIComponent(template)}#Личный%20VPN`;
+        const androidIntent = `intent://${rawProfileUrl.replace('sing-box://', '')}#Intent;scheme=sing-box;package=io.nekohasekai.singbox;end`;
+        document.getElementById('vpnBtn').href = androidIntent;
     } else {
-        document.getElementById('vpnBtn').addEventListener('click', function(e) {
-            e.preventDefault();
-            alert('Ошибка: Ссылка повреждена или отсутствует токен.');
-        });
+        alert('Ошибка: Токен пользователя отсутствует в ссылке');
     }
 </script>
-
 </body>
 </html>
