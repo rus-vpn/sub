@@ -14,23 +14,38 @@
     </style>
 </head>
 <body>
+
 <div class="card">
     <h1>Настройка Android</h1>
-    <p>Нажми на кнопку ниже, чтобы автоматически импортировать настройки и умные правила для РФ в приложение sing-box.</p>
+    <p>Нажми на кнопку ниже для автоматического импорта настроек в приложение sing-box.</p>
     <a id="vpnBtn" class="btn" href="#">Настроить в 1 клик</a>
 </div>
+
 <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
+    // Скрипт примет и просто токен (?token=...) и полную ссылку из панели (?sub=...)
+    let token = urlParams.get('token') || urlParams.get('sub');
+
     if (token) {
+        // Если клиент вставил полную ссылку, выдергиваем только сам токен (все символы после последнего слэша)
+        if (token.includes('/')) {
+            token = token.split('/').pop();
+        }
+
         const subUrl = `http://rus-vpn.duckdns.org:33445/secure-connect-vless/${token}`;
         const template = 'https://raw.githubusercontent.com/sing-box/template/main/clientside-split-tunnel-ru.json';
-        const rawProfileUrl = `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}&template=${encodeURIComponent(template)}#Личный%20VPN`;
-        const androidIntent = `intent://${rawProfileUrl.replace('sing-box://', '')}#Intent;scheme=sing-box;package=io.nekohasekai.singbox;end`;
-        document.getElementById('vpnBtn').href = androidIntent;
+        
+        // Прямой, стандартный диплинк без прослойки intent://
+        const singBoxLink = `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}&template=${encodeURIComponent(template)}#Личный%20VPN`;
+        
+        document.getElementById('vpnBtn').href = singBoxLink;
     } else {
-        alert('Ошибка: Токен пользователя отсутствует в ссылке');
+        document.getElementById('vpnBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Ошибка: Ссылка повреждена или отсутствует токен.');
+        });
     }
 </script>
+
 </body>
 </html>
