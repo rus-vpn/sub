@@ -8,17 +8,20 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f4f7; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; max-width: 340px; width: 90%; }
         h1 { font-size: 20px; color: #1d1d1f; margin: 0 0 10px 0; }
-        p { font-size: 14px; color: #86868b; margin: 0 0 25px 0; line-height: 1.4; }
-        .btn { display: block; background: #0071e3; color: white; text-decoration: none; padding: 14px; border-radius: 12px; font-weight: 600; font-size: 16px; transition: background 0.2s; }
+        p { font-size: 14px; color: #86868b; margin: 0 0 20px 0; line-height: 1.4; }
+        .btn { display: block; background: #0071e3; color: white; text-decoration: none; padding: 14px; border-radius: 12px; font-weight: 600; font-size: 16px; transition: background 0.2s; border: none; width: 100%; cursor: pointer; }
         .btn:hover { background: #0077ed; }
+        .btn.copied { background: #34c759; }
+        .status { font-size: 12px; color: #ff3b30; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h1>Настройка Android</h1>
-    <p>Нажми на кнопку ниже, чтобы автоматически импортировать настройки и умные правила для РФ в приложение sing-box.</p>
-    <a id="vpnBtn" class="btn" href="#">Настроить в 1 клик</a>
+    <p>Нажми на кнопку ниже, чтобы скопировать ключ активации для v2rayNG.</p>
+    <button id="copyBtn" class="btn">Скопировать ключ</button>
+    <div id="statusMsg" class="status"></div>
 </div>
 
 <script>
@@ -27,28 +30,50 @@
 
     if (rawInput) {
         let token = rawInput;
-        
-        // Если вставили полную ссылку, отрезаем всё до токена
         if (token.includes('/')) {
             token = token.split('/').pop().trim();
         }
 
-        // Чистый HTTP без SSL (обход ошибки x509 expired)
-        const subUrl = `http://rus-vpn.duckdns.org:33445/secure-connect-vless/${token}`;
-        const template = 'https://raw.githubusercontent.com/sing-box/template/main/clientside-split-tunnel-ru.json';
-        
-        // Базовый линк импорта
-        const rawProfileUrl = `import-remote-profile?url=${encodeURIComponent(subUrl)}&template=${encodeURIComponent(template)}#Личный%20VPN`;
-        
-        // Эталонный Android Intent. Принудительно открывает приложение io.nekohasekai.singbox
-        const androidIntent = `intent://${rawProfileUrl}#Intent;scheme=sing-box;package=io.nekohasekai.singbox;end`;
-        
-        document.getElementById('vpnBtn').href = androidIntent;
-    } else {
-        document.getElementById('vpnBtn').addEventListener('click', function(e) {
-            e.preventDefault();
-            alert('Ошибка: Токен пользователя отсутствует в ссылке');
+        // Прямой запрос к панели по HTTP (обходим просроченный SSL)
+        const targetUrl = `http://rus-vpn.duckdns.org:33445/secure-connect-vless/${token}`;
+        const copyBtn = document.getElementById('copyBtn');
+        const statusMsg = document.getElementById('statusMsg');
+
+        copyBtn.addEventListener('click', function() {
+            copyBtn.innerText = 'Загрузка...';
+            
+            // Получаем конфигурацию напрямую с сервера
+            fetch(targetUrl)
+                .then(response => {
+                    if (!response.ok) throw new Error('Ошибка сервера');
+                    return response.text();
+                })
+                .then(configText => {
+                    // Кодируем полученный конфиг в Base64, как требует v2rayNG
+                    const base64Config = btoa(unescape(encodeURIComponent(configText)));
+                    
+                    return navigator.clipboard.writeText(base64Config);
+                })
+                .then(() => {
+                    copyBtn.innerText = 'Успешно скопировано!';
+                    copyBtn.classList.add('copied');
+                    statusMsg.style.display = 'none';
+                    setTimeout(() => {
+                        copyBtn.innerText = 'Скопировать ключ';
+                        copyBtn.classList.remove('copied');
+                    }, 3000);
+                })
+                .catch(err => {
+                    copyBtn.innerText = 'Ошибка';
+                    statusMsg.innerText = 'Не удалось получить ключ. Проверьте работу панели или токен.';
+                    statusMsg.style.display = 'block';
+                });
         });
+    } else {
+        document.getElementById('copyBtn').style.display = 'none';
+        const statusMsg = document.getElementById('statusMsg');
+        statusMsg.innerText = 'Ошибка: Токен отсутствует в ссылке';
+        statusMsg.style.display = 'block';
     }
 </script>
 
