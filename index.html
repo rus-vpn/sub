@@ -34,40 +34,30 @@
             token = token.split('/').pop().trim();
         }
 
-        // Прямой запрос к панели по HTTP (обходим просроченный SSL)
-        const targetUrl = `http://rus-vpn.duckdns.org:33445/secure-connect-vless/${token}`;
+        // Локальная ссылка подписки, которую должен запросить v2rayNG
+        const subUrl = `http://rus-vpn.duckdns.org:33445/secure-connect-vless/${token}`;
         const copyBtn = document.getElementById('copyBtn');
-        const statusMsg = document.getElementById('statusMsg');
 
         copyBtn.addEventListener('click', function() {
-            copyBtn.innerText = 'Загрузка...';
-            
-            // Получаем конфигурацию напрямую с сервера
-            fetch(targetUrl)
-                .then(response => {
-                    if (!response.ok) throw new Error('Ошибка сервера');
-                    return response.text();
-                })
-                .then(configText => {
-                    // Кодируем полученный конфиг в Base64, как требует v2rayNG
-                    const base64Config = btoa(unescape(encodeURIComponent(configText)));
-                    
-                    return navigator.clipboard.writeText(base64Config);
-                })
-                .then(() => {
+            try {
+                // Кодируем ссылку в Base64 прямо на устройстве, без сетевых запросов fetch
+                const base64Config = btoa(unescape(encodeURIComponent(subUrl)));
+                
+                navigator.clipboard.writeText(base64Config).then(() => {
                     copyBtn.innerText = 'Успешно скопировано!';
                     copyBtn.classList.add('copied');
-                    statusMsg.style.display = 'none';
                     setTimeout(() => {
                         copyBtn.innerText = 'Скопировать ключ';
                         copyBtn.classList.remove('copied');
                     }, 3000);
-                })
-                .catch(err => {
-                    copyBtn.innerText = 'Ошибка';
-                    statusMsg.innerText = 'Не удалось получить ключ. Проверьте работу панели или токен.';
-                    statusMsg.style.display = 'block';
+                }).catch(err => {
+                    throw new Error('Доступ к буферу обмена запрещен');
                 });
+            } catch (e) {
+                const statusMsg = document.getElementById('statusMsg');
+                statusMsg.innerText = 'Ошибка копирования. Попробуйте открыть страницу в другом браузере.';
+                statusMsg.style.display = 'block';
+            }
         });
     } else {
         document.getElementById('copyBtn').style.display = 'none';
