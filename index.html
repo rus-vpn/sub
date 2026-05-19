@@ -14,24 +14,43 @@
     </style>
 </head>
 <body>
+
 <div class="card">
     <h1>Настройка Android</h1>
-    <p>Нажми на кнопку ниже, чтобы автоматически импортировать настройки в приложение sing-box.</p>
+    <p>Нажми на кнопку ниже, чтобы автоматически импортировать настройки и умные правила для РФ в приложение sing-box.</p>
     <a id="vpnBtn" class="btn" href="#">Настроить в 1 клик</a>
 </div>
+
 <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    if (token) {
-        // МЫ ЗАМЕНИЛИ https НА http ЗДЕСЬ, чтобы обойти ошибку сертификата
+    let rawInput = urlParams.get('token') || urlParams.get('sub');
+
+    if (rawInput) {
+        let token = rawInput;
+        
+        // Если вставили полную ссылку, отрезаем всё до токена
+        if (token.includes('/')) {
+            token = token.split('/').pop().trim();
+        }
+
+        // Чистый HTTP без SSL (обход ошибки x509 expired)
         const subUrl = `http://rus-vpn.duckdns.org:33445/secure-connect-vless/${token}`;
         const template = 'https://raw.githubusercontent.com/sing-box/template/main/clientside-split-tunnel-ru.json';
-        const rawProfileUrl = `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}&template=${encodeURIComponent(template)}#Личный%20VPN`;
-        const androidIntent = `intent://${rawProfileUrl.replace('sing-box://', '')}#Intent;scheme=sing-box;package=io.nekohasekai.singbox;end`;
+        
+        // Базовый линк импорта
+        const rawProfileUrl = `import-remote-profile?url=${encodeURIComponent(subUrl)}&template=${encodeURIComponent(template)}#Личный%20VPN`;
+        
+        // Эталонный Android Intent. Принудительно открывает приложение io.nekohasekai.singbox
+        const androidIntent = `intent://${rawProfileUrl}#Intent;scheme=sing-box;package=io.nekohasekai.singbox;end`;
+        
         document.getElementById('vpnBtn').href = androidIntent;
     } else {
-        alert('Ошибка: Токен пользователя отсутствует в ссылке');
+        document.getElementById('vpnBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Ошибка: Токен пользователя отсутствует в ссылке');
+        });
     }
 </script>
+
 </body>
 </html>
