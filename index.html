@@ -27,37 +27,82 @@
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     let rawInput = urlParams.get('token') || urlParams.get('sub');
+    const copyBtn = document.getElementById('copyBtn');
+    const statusMsg = document.getElementById('statusMsg');
 
     if (rawInput) {
         let uuid = rawInput.trim();
         
-        // Если случайно скопировали полную ссылку, вырезаем из нее только чистый UUID токен
-        if (uuid.includes('/')) { uuid = uuid.split('/').pop(); }
-        if (uuid.includes('@')) { uuid = uuid.split('@')[0].split('//').pop(); }
+        // Строгая фильтрация: выдергиваем только реальный UUID v4 или 32-значный токен
+        const targetRegex = /([0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})/;
+        const match = uuid.match(targetRegex);
+        
+        if (match) {
+            uuid = match[0];
 
-        // Идеальная, монолитная Reality строка. Замени ключи pbk и sid на свои из панели!
-        const configString = `vless://${uuid}@rus-vpn.duckdns.org:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=google.com&fp=chrome&pbk=SnoZBGPg5PNHh-YpjW_5x5pBkyAbNhCP0LydwNlcVGQ&sid=9a30ab9c5320,90c6,93,72cf5cd7,444085,1087eaa004aff4e1,9836cb9f4b,df62e0dd2c59a0&type=tcp#Личный%20VPN`;
+            // Идеальный продакшн-конфиг с packetEncoding=xudp для ускорения YouTube и звонков
+            const configString = `vless://${uuid}@rus-vpn.duckdns.org:29068?type=tcp&security=reality&encryption=none&flow=xtls-rprx-vision&allowInsecure=0&packetEncoding=xudp&pbk=SnoZBGPg5PNHh-YpjW_5x5pBkyAbNhCP0LydwNlcVGQ&fp=chrome&sni=www.intel.com&sid=9a30ab9c5320&spx=%2F#Личный%20VPN`;
 
-        const copyBtn = document.getElementById('copyBtn');
-
-        copyBtn.addEventListener('click', function() {
-            navigator.clipboard.writeText(configString).then(() => {
-                copyBtn.innerText = 'Успешно скопировано!';
-                copyBtn.classList.add('copied');
-                setTimeout(() => {
-                    copyBtn.innerText = 'Скопировать ключ';
-                    copyBtn.classList.remove('copied');
-                }, 3000);
-            }).catch(err => {
-                const statusMsg = document.getElementById('statusMsg');
-                statusMsg.innerText = 'Ошибка доступа к буферу обмена.';
-                statusMsg.style.display = 'block';
+            copyBtn.addEventListener('click', function() {
+                // Безопасная проверка наличия Clipboard API
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(configString)
+                        .then(() => {
+                            showSuccess();
+                        })
+                        .catch(() => {
+                            fallbackCopy(configString);
+                        });
+                } else {
+                    fallbackCopy(configString);
+                }
             });
-        });
+        } else {
+            showFatalError('Ошибка: Некорректный формат UUID токена');
+        }
     } else {
-        document.getElementById('copyBtn').style.display = 'none';
-        const statusMsg = document.getElementById('statusMsg');
-        statusMsg.innerText = 'Ошибка: Токен отсутствует в ссылке';
+        showFatalError('Ошибка: Токен отсутствует в ссылке');
+    }
+
+    // Бронебойный фолбек для любых WebView и прошивок
+    function fallbackCopy(text) {
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            
+            textarea.focus();
+            textarea.select();
+            
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            if (successful) {
+                showSuccess();
+            } else {
+                throw new Error();
+            }
+        } catch (e) {
+            statusMsg.innerText = 'Ошибка копирования. Откройте страницу в обычном браузере.';
+            statusMsg.style.display = 'block';
+        }
+    }
+
+    function showSuccess() {
+        copyBtn.innerText = 'Успешно скопировано!';
+        copyBtn.classList.add('copied');
+        statusMsg.style.display = 'none';
+        setTimeout(() => {
+            copyBtn.innerText = 'Скопировать ключ';
+            copyBtn.classList.remove('copied');
+        }, 3000);
+    }
+
+    function showFatalError(msg) {
+        copyBtn.style.display = 'none';
+        statusMsg.innerText = msg;
         statusMsg.style.display = 'block';
     }
 </script>
