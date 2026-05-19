@@ -23,19 +23,21 @@
 
 <script>
     const urlParams = new URLSearchParams(window.location.search);
-    // Скрипт примет и просто токен (?token=...) и полную ссылку из панели (?sub=...)
-    let token = urlParams.get('token') || urlParams.get('sub');
+    let rawInput = urlParams.get('token') || urlParams.get('sub');
 
-    if (token) {
-        // Если клиент вставил полную ссылку, выдергиваем только сам токен (все символы после последнего слэша)
+    if (rawInput) {
+        let token = rawInput;
+        
+        // Если вставили полную ссылку (с http/https или слэшами), забираем только сам токен в конце
         if (token.includes('/')) {
-            token = token.split('/').pop();
+            token = token.split('/').pop().trim();
         }
 
+        // Жестко собираем правильный URL подписки, подставляя вырезанный токен к твоему DuckDNS
         const subUrl = `http://rus-vpn.duckdns.org:33445/secure-connect-vless/${token}`;
         const template = 'https://raw.githubusercontent.com/sing-box/template/main/clientside-split-tunnel-ru.json';
         
-        // Прямой, стандартный диплинк без прослойки intent://
+        // Формируем прямой диплинк для sing-box
         const singBoxLink = `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}&template=${encodeURIComponent(template)}#Личный%20VPN`;
         
         document.getElementById('vpnBtn').href = singBoxLink;
