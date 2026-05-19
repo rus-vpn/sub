@@ -29,35 +29,30 @@
     let rawInput = urlParams.get('token') || urlParams.get('sub');
 
     if (rawInput) {
-        let token = rawInput;
-        if (token.includes('/')) {
-            token = token.split('/').pop().trim();
-        }
+        let uuid = rawInput.trim();
+        
+        // Если случайно скопировали полную ссылку, вырезаем из нее только чистый UUID токен
+        if (uuid.includes('/')) { uuid = uuid.split('/').pop(); }
+        if (uuid.includes('@')) { uuid = uuid.split('@')[0].split('//').pop(); }
 
-        // Локальная ссылка подписки, которую должен запросить v2rayNG
-        const subUrl = `http://rus-vpn.duckdns.org:33445/secure-connect-vless/${token}`;
+        // Идеальная, монолитная Reality строка. Замени ключи pbk и sid на свои из панели!
+        const configString = `vless://${uuid}@rus-vpn.duckdns.org:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=google.com&fp=chrome&pbk=ВСТАВЬ_СЮДА_СВОЙ_PUBLIC_KEY&sid=ВСТАВЬ_СЮДА_СВОЙ_SHORT_ID&type=tcp#Личный%20VPN`;
+
         const copyBtn = document.getElementById('copyBtn');
 
         copyBtn.addEventListener('click', function() {
-            try {
-                // Кодируем ссылку в Base64 прямо на устройстве, без сетевых запросов fetch
-                const base64Config = btoa(unescape(encodeURIComponent(subUrl)));
-                
-                navigator.clipboard.writeText(base64Config).then(() => {
-                    copyBtn.innerText = 'Успешно скопировано!';
-                    copyBtn.classList.add('copied');
-                    setTimeout(() => {
-                        copyBtn.innerText = 'Скопировать ключ';
-                        copyBtn.classList.remove('copied');
-                    }, 3000);
-                }).catch(err => {
-                    throw new Error('Доступ к буферу обмена запрещен');
-                });
-            } catch (e) {
+            navigator.clipboard.writeText(configString).then(() => {
+                copyBtn.innerText = 'Успешно скопировано!';
+                copyBtn.classList.add('copied');
+                setTimeout(() => {
+                    copyBtn.innerText = 'Скопировать ключ';
+                    copyBtn.classList.remove('copied');
+                }, 3000);
+            }).catch(err => {
                 const statusMsg = document.getElementById('statusMsg');
-                statusMsg.innerText = 'Ошибка копирования. Попробуйте открыть страницу в другом браузере.';
+                statusMsg.innerText = 'Ошибка доступа к буферу обмена.';
                 statusMsg.style.display = 'block';
-            }
+            });
         });
     } else {
         document.getElementById('copyBtn').style.display = 'none';
