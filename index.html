@@ -31,20 +31,20 @@
     const statusMsg = document.getElementById('statusMsg');
 
     if (rawInput) {
-        let uuid = rawInput.trim();
-        
-        // Строгая фильтрация: выдергиваем только реальный UUID v4 или 32-значный токен
-        const targetRegex = /([0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})/;
-        const match = uuid.match(targetRegex);
-        
-        if (match) {
-            uuid = match[0];
+        // Сохраняем оригинальный регистр токена
+        const token = rawInput.trim();
 
-            // Идеальный продакшн-конфиг с packetEncoding=xudp для ускорения YouTube и звонков
-            const configString = `vless://${uuid}@rus-vpn.duckdns.org:29068?type=tcp&security=reality&encryption=none&flow=xtls-rprx-vision&allowInsecure=0&packetEncoding=xudp&pbk=SnoZBGPg5PNHh-YpjW_5x5pBkyAbNhCP0LydwNlcVGQ&fp=chrome&sni=www.intel.com&sid=9a30ab9c5320&spx=%2F#Личный%20VPN`;
+        // Проверка регуляркой с флагом /i (регистронезависимо для UUID)
+        const tokenRegex = /^([0-9a-z]{16}|[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
+
+        if (tokenRegex.test(token)) {
+            // Безопасное кодирование имени профиля
+            const profileName = encodeURIComponent('Личный VPN');
+
+            // Чистый, лаконичный продакшн Reality URI без лишнего мусора
+            const configString = `vless://${token}@rus-vpn.duckdns.org:29068?type=tcp&security=reality&encryption=none&flow=xtls-rprx-vision&pbk=SnoZBGPg5PNHh-YpjW_5x5pBkyAbNhCP0LydwNlcVGQ&fp=chrome&sni=www.intel.com&sid=9a30ab9c5320&spx=%2F#${profileName}`;
 
             copyBtn.addEventListener('click', function() {
-                // Безопасная проверка наличия Clipboard API
                 if (navigator.clipboard && window.isSecureContext) {
                     navigator.clipboard.writeText(configString)
                         .then(() => {
@@ -58,13 +58,13 @@
                 }
             });
         } else {
-            showFatalError('Ошибка: Некорректный формат UUID токена');
+            showFatalError('Ошибка: Некорректный формат токена');
         }
     } else {
         showFatalError('Ошибка: Токен отсутствует в ссылке');
     }
 
-    // Бронебойный фолбек для любых WebView и прошивок
+    // Резервное копирование для WebView и старых прошивок
     function fallbackCopy(text) {
         try {
             const textarea = document.createElement('textarea');
